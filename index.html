@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>英语自由打字练习</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #eef2f3;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            padding: 20px;
+            background-color: #f7f1e3;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-title {
+            text-align: center;
+            font-family: "Trebuchet MS", sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            background-color: #dfe6e9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-top: 20px;
+            color: #34495e;
+        }
+
+        .line-text {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .inputField {
+            width: 100%;
+            height: 30px;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .correct {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .resultField {
+            font-size: 20px;
+            margin-top: 10px;
+        }
+
+        .info-box {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+
+        #wpm {
+            font-size: 20px;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+
+        textarea, input[type="file"], select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .file-warning {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .practice-area {
+            margin-top: 20px;
+        }
+
+        .practice-area p {
+            margin: 0;
+        }
+
+        .block {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        .action-buttons {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .action-buttons button {
+            width: 48%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="main-title">英语自由打字练习</div>
+
+            <!-- 用户自定义内容 -->
+            <div class="block">
+                <h2>输入自定义内容</h2>
+                <textarea id="customText" placeholder="输入练习内容..." rows="4"></textarea>
+                <input type="text" id="customTitle" placeholder="输入标题...">
+                <button onclick="saveCustomText()">保存自定义内容</button>
+            </div>
+
+            <!-- 文件上传功能 -->
+            <div class="block">
+                <h2>上传练习文本（仅限TXT）</h2>
+                <input type="file" id="fileInput" accept=".txt">
+                <button onclick="uploadFile()">上传文件</button>
+                <p id="fileWarning" class="file-warning" style="display:none;">仅支持TXT文件格式！</p>
+            </div>
+
+            <!-- 选择练习内容 -->
+            <div class="block">
+                <h2>选择练习内容</h2>
+                <select id="practiceSelector" onchange="selectPracticeContent()">
+                    <option value="">选择内容...</option>
+                </select>
+                
+                <!-- 编辑和删除按钮 -->
+                <div class="action-buttons">
+                    <button onclick="editSelectedContent()">编辑内容</button>
+                    <button onclick="deleteSelectedContent()">删除内容</button>
+                </div>
+            </div>
+
+            <!-- 显示计时器 -->
+            <div class="block">
+                <div class="info-box">
+                    用时: <span id="timer">0.00</span> 秒
+                    <div id="wpm">每分钟打字速度: 0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧练习区 -->
+        <div class="main-content">
+            <h2>练习区域</h2>
+            <div id="practiceArea" class="practice-area"></div>
+        </div>
+    </div>
+
+    <script>
+        let systemSentences = [
+            { title: "系统内容 1", content: "The quick brown fox jumps over the lazy dog." },
+            { title: "系统内容 2", content: "A journey of a thousand miles begins with a single step." },
+            { title: "系统内容 3", content: "Don't watch the clock; do what it does. Keep going." }
+        ];
+
+        let customContents = [];
+        let selectedContentIndex = null;
+        let startTime = null;
+        let timerInterval = null;
+        let totalCharacters = 0;
+        let completedCharacters = 0;
+
+        function loadStoredContents() {
+            const storedContents = localStorage.getItem('customContents');
+            if (storedContents) {
+                customContents = JSON.parse(storedContents);
+                updatePracticeSelector();
+            }
+        }
+
+        function saveCustomText() {
+            const customText = document.getElementById('customText').value;
+            const customTitle = document.getElementById('customTitle').value;
+
+            if (customText && customTitle) {
+                customContents.push({ title: customTitle, content: customText });
+                localStorage.setItem('customContents', JSON.stringify(customContents));
+                updatePracticeSelector();
+            } else {
+                alert("请输入标题和内容。");
+            }
+        }
+
+        function editSelectedContent() {
+            const selector = document.getElementById('practiceSelector');
+            const value = selector.value;
+
+            if (value.startsWith("custom-")) {
+                selectedContentIndex = parseInt(value.split('-')[1]);
+
+                document.getElementById('customTitle').value = customContents[selectedContentIndex].title;
+                document.getElementById('customText').value = customContents[selectedContentIndex].content;
+
+                document.getElementById('customTitle').onblur = function () {
+                    customContents[selectedContentIndex].title = document.getElementById('customTitle').value;
+                    localStorage.setItem('customContents', JSON.stringify(customContents));
+                    updatePracticeSelector();
+                };
+
+                document.getElementById('customText').onblur = function () {
+                    customContents[selectedContentIndex].content = document.getElementById('customText').value;
+                    localStorage.setItem('customContents', JSON.stringify(customContents));
+                    updatePracticeSelector();
+                };
+            } else {
+                alert("只能编辑自定义内容！");
+            }
+        }
+
+        function deleteSelectedContent() {
+            const selector = document.getElementById('practiceSelector');
+            const value = selector.value;
+
+            if (value.startsWith("custom-")) {
+                const index = parseInt(value.split('-')[1]);
+                customContents.splice(index, 1);
+                localStorage.setItem('customContents', JSON.stringify(customContents));
+                updatePracticeSelector();
+                alert("内容已删除！");
+            } else {
+                alert("只能删除自定义内容！");
+            }
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const warningElement = document.getElementById('fileWarning');
+
+            if (!file) {
+                alert("请选择一个文件。");
+                return;
+            }
+
+            if (file.type !== "text/plain") {
+                warningElement.style.display = "block";
+                return;
+            } else {
+                warningElement.style.display = "none";
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const title = prompt("为此内容输入一个标题:");
+                if (title) {
+                    customContents.push({ title, content });
+                    localStorage.setItem('customContents', JSON.stringify(customContents));
+                    updatePracticeSelector();
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        function updatePracticeSelector() {
+            const selector = document.getElementById('practiceSelector');
+            selector.innerHTML = '<option value="">选择内容...</option>';
+
+            systemSentences.forEach((item, index) => {
+                const option = document.createElement('option');
+                option.value = `system-${index}`;
+                option.textContent = item.title;
+                selector.appendChild(option);
+            });
+
+            customContents.forEach((item, index) => {
+                const option = document.createElement('option');
+                option.value = `custom-${index}`;
+                option.textContent = item.title;
+                selector.appendChild(option);
+            });
+        }
+
+        function selectPracticeContent() {
+            const selector = document.getElementById('practiceSelector');
+            const value = selector.value;
+
+            let content = '';
+
+            if (value.startsWith("system-")) {
+                const index = parseInt(value.split('-')[1]);
+                content = systemSentences[index].content;
+            } else if (value.startsWith("custom-")) {
+                const index = parseInt(value.split('-')[1]);
+                content = customContents[index].content;
+            }
+
+            displayPracticeContent(content);
+        }
+
+        function displayPracticeContent(content) {
+            resetTimer();
+
+            const lines = content.split(/(?<=[.?!])\s|\n/); 
+            const practiceArea = document.getElementById('practiceArea');
+            practiceArea.innerHTML = '';
+            totalCharacters = 0;
+
+            lines.forEach((line, index) => {
+                totalCharacters += line.length;
+
+                const lineText = document.createElement('p');
+                lineText.className = 'line-text';
+                lineText.textContent = line;
+
+                const inputField = document.createElement('input');
+                inputField.type = 'text';
+                inputField.className = 'inputField';
+                inputField.setAttribute('data-line', index);
+                inputField.oninput = () => checkTyping(line, inputField, index);
+                inputField.onkeydown = (e) => moveToNextLine(e, index);
+
+                const resultField = document.createElement('div');
+                resultField.className = 'resultField';
+                resultField.setAttribute('id', `result-${index}`);
+
+                practiceArea.appendChild(lineText);
+                practiceArea.appendChild(inputField);
+                practiceArea.appendChild(resultField);
+            });
+        }
+
+        function checkTyping(expectedLine, inputField, lineIndex) {
+            const userInput = inputField.value;
+
+            if (!startTime && userInput.length > 0) {
+                startTimer();
+            }
+
+            let result = '';
+            let correctCount = 0;
+
+            for (let i = 0; i < expectedLine.length; i++) {
+                if (userInput[i] === expectedLine[i]) {
+                    result += `<span class="correct">${userInput[i]}</span>`;
+                    correctCount++;
+                } else {
+                    result += `<span class="error">${userInput[i] || ''}</span>`;
+                }
+            }
+
+            completedCharacters += correctCount;
+
+            const resultField = document.getElementById(`result-${lineIndex}`);
+            resultField.innerHTML = result;
+
+            if (completedCharacters >= totalCharacters) {
+                stopTimer();
+            }
+        }
+
+        function moveToNextLine(event, currentIndex) {
+            if (event.key === "Enter") {
+                const inputFields = document.getElementsByClassName('inputField');
+                if (currentIndex < inputFields.length - 1) {
+                    inputFields[currentIndex + 1].focus();
+                }
+            }
+        }
+
+        function startTimer() {
+            startTime = new Date();
+            timerInterval = setInterval(updateTimer, 100);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            calculateWPM();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timer').textContent = "0.00";
+            document.getElementById('wpm').textContent = "每分钟打字速度: 0";
+            startTime = null;
+            completedCharacters = 0;
+        }
+
+        function updateTimer() {
+            const currentTime = new Date();
+            const elapsedTime = (currentTime - startTime) / 1000;
+            document.getElementById('timer').textContent = elapsedTime.toFixed(2);
+        }
+
+        function calculateWPM() {
+            const currentTime = new Date();
+            const elapsedTime = (currentTime - startTime) / 1000 / 60;
+            const wpm = completedCharacters / 5 / elapsedTime;
+            document.getElementById('wpm').textContent = `每分钟打字速度: ${wpm.toFixed(2)}`;
+        }
+
+        window.onload = function() {
+            loadStoredContents();
+            updatePracticeSelector();
+        };
+    </script>
+
+</body>
+</html>
