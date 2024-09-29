@@ -471,9 +471,15 @@ function updateTimer() {
 function calculateWPM() {
     const currentTime = new Date();
     const elapsedTime = (currentTime - startTime) / 1000 / 60; // 转换为分钟
-    const wpm = (completedCharacters / 5) / elapsedTime; // 平均每 5 个字符算作一个单词
-    document.getElementById('wpm').textContent = `每分钟打字速度: ${wpm.toFixed(2)}`; // 显示打字速度
+
+    if (elapsedTime > 0) { // 确保时间不为 0
+        const wpm = (completedCharacters / 5) / elapsedTime; // 平均每 5 个字符算作一个单词
+        document.getElementById('wpm').textContent = `每分钟打字速度: ${wpm.toFixed(2)}`; // 显示打字速度
+    } else {
+        document.getElementById('wpm').textContent = "每分钟打字速度: 0";
+    }
 }
+
 
         window.onload = function() {
             loadStoredContents();
