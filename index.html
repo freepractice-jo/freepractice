@@ -344,14 +344,27 @@
             displayPracticeContent(content);
         }
 
-        function displayPracticeContent(content) {
+        function splitTextByLength(text, maxLength) {
+    const regex = new RegExp(`(.{1,${maxLength}})(\\s|$)`, 'g');
+    const lines = [];
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+        lines.push(match[1].trim());
+    }
+    return lines;
+}
+
+function displayPracticeContent(content) {
     resetTimer();
 
-    // 按行分割文本（使用换行符或句子结束符分割）
-    const lines = content.split(/\n|(?<=[.?!])\s/);
+    // 设置每行的最大字符数（可以根据需要调整）
+    const maxLengthPerLine = 80;  // 这里假设每行最多 80 个字符
+    const lines = splitTextByLength(content, maxLengthPerLine);
+    
     const practiceArea = document.getElementById('practiceArea');
     practiceArea.innerHTML = '';
-    totalCharacters = 0;  // 重置总字符数
+    totalCharacters = 0;
 
     // 为每一行文本创建输入框
     lines.forEach((line, index) => {
@@ -368,7 +381,7 @@
         inputField.className = 'inputField';
         inputField.setAttribute('data-line', index);
         inputField.oninput = () => checkTyping(line, inputField, index);
-        inputField.onkeydown = (e) => moveToNextLine(e, index); // 按下 Enter 键时自动跳到下一行
+        inputField.onkeydown = (e) => moveToNextLine(e, index);
 
         // 创建结果显示区域
         const resultField = document.createElement('div');
@@ -383,10 +396,10 @@
 }
 
 
-        function checkTyping(expectedLine, inputField, lineIndex) {
+function checkTyping(expectedLine, inputField, lineIndex) {
     const userInput = inputField.value;
 
-    // 开始计时
+    // 启动计时器
     if (!startTime && userInput.length > 0) {
         startTimer();
     }
@@ -403,60 +416,64 @@
         }
     }
 
-    // 更新正确字符数
-    completedCharacters += correctCount;
-
-    // 显示结果
+    // 显示校验结果
     const resultField = document.getElementById(`result-${lineIndex}`);
     resultField.innerHTML = result;
 
-    // 如果所有字符都输入正确，停止计时
+    completedCharacters += correctCount; // 更新完成的字符数量
+
+    // 当用户完成输入并且最后一个字符正确时跳转
+    if (userInput.length === expectedLine.length && userInput[userInput.length - 1] === expectedLine[expectedLine.length - 1]) {
+        moveToNextLineByLength(lineIndex);
+    }
+
+    // 如果已完成所有字符，停止计时
     if (completedCharacters >= totalCharacters) {
         stopTimer();
     }
 }
 
-
-        function moveToNextLine(event, currentIndex) {
-    if (event.key === "Enter") {
-        const inputFields = document.getElementsByClassName('inputField');
-        if (currentIndex < inputFields.length - 1) {
-            inputFields[currentIndex + 1].focus();
-        }
+function moveToNextLineByLength(currentIndex) {
+    const inputFields = document.getElementsByClassName('inputField');
+    if (currentIndex < inputFields.length - 1) {
+        // 自动跳到下一行的输入框
+        inputFields[currentIndex + 1].focus();
     }
 }
 
+function startTimer() {
+    if (!startTime) {
+        startTime = new Date(); // 获取开始时间
+        timerInterval = setInterval(updateTimer, 100); // 每100ms更新一次
+    }
+}
 
-        function startTimer() {
-            startTime = new Date();
-            timerInterval = setInterval(updateTimer, 100);
-        }
+function stopTimer() {
+    clearInterval(timerInterval); // 停止计时器
+    calculateWPM(); // 计算每分钟打字速度
+}
 
-        function stopTimer() {
-            clearInterval(timerInterval);
-            calculateWPM();
-        }
+function resetTimer() {
+    clearInterval(timerInterval);
+    startTime = null;
+    completedCharacters = 0;
+    document.getElementById('timer').textContent = "0.00 秒";
+    document.getElementById('wpm').textContent = "每分钟打字速度: 0";
+}
 
-        function resetTimer() {
-            clearInterval(timerInterval);
-            document.getElementById('timer').textContent = "0.00";
-            document.getElementById('wpm').textContent = "每分钟打字速度: 0";
-            startTime = null;
-            completedCharacters = 0;
-        }
+function updateTimer() {
+    if (!startTime) return;
+    const currentTime = new Date();
+    const elapsedTime = (currentTime - startTime) / 1000; // 以秒为单位计算
+    document.getElementById('timer').textContent = elapsedTime.toFixed(2) + " 秒"; // 更新页面显示时间
+}
 
-        function updateTimer() {
-            const currentTime = new Date();
-            const elapsedTime = (currentTime - startTime) / 1000;
-            document.getElementById('timer').textContent = elapsedTime.toFixed(2);
-        }
-
-        function calculateWPM() {
-            const currentTime = new Date();
-            const elapsedTime = (currentTime - startTime) / 1000 / 60;
-            const wpm = completedCharacters / 5 / elapsedTime;
-            document.getElementById('wpm').textContent = `每分钟打字速度: ${wpm.toFixed(2)}`;
-        }
+function calculateWPM() {
+    const currentTime = new Date();
+    const elapsedTime = (currentTime - startTime) / 1000 / 60; // 转换为分钟
+    const wpm = (completedCharacters / 5) / elapsedTime; // 平均每 5 个字符算作一个单词
+    document.getElementById('wpm').textContent = `每分钟打字速度: ${wpm.toFixed(2)}`; // 显示打字速度
+}
 
         window.onload = function() {
             loadStoredContents();
@@ -466,10 +483,3 @@
 
 </body>
 </html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="description" content="这是一个英语打字练习网站，帮助用户提高打字速度和准确性。">
-  <meta name="keywords" content="打字练习, 英语打字, 在线练习, 英语学习，自定义内容打字，自定义内容，英语单词，英语文章打字">
-  <meta name="author" content="英语打字">
-  <title>英语自由打字练习</title>
-</head>
