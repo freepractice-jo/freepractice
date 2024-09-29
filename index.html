@@ -345,74 +345,87 @@
         }
 
         function displayPracticeContent(content) {
-            resetTimer();
+    resetTimer();
 
-            const lines = content.split(/(?<=[.?!])\s|\n/); 
-            const practiceArea = document.getElementById('practiceArea');
-            practiceArea.innerHTML = '';
-            totalCharacters = 0;
+    // 按行分割文本（使用换行符或句子结束符分割）
+    const lines = content.split(/\n|(?<=[.?!])\s/);
+    const practiceArea = document.getElementById('practiceArea');
+    practiceArea.innerHTML = '';
+    totalCharacters = 0;  // 重置总字符数
 
-            lines.forEach((line, index) => {
-                totalCharacters += line.length;
+    // 为每一行文本创建输入框
+    lines.forEach((line, index) => {
+        totalCharacters += line.length;
 
-                const lineText = document.createElement('p');
-                lineText.className = 'line-text';
-                lineText.textContent = line;
+        // 创建文本显示行
+        const lineText = document.createElement('p');
+        lineText.className = 'line-text';
+        lineText.textContent = line;
 
-                const inputField = document.createElement('input');
-                inputField.type = 'text';
-                inputField.className = 'inputField';
-                inputField.setAttribute('data-line', index);
-                inputField.oninput = () => checkTyping(line, inputField, index);
-                inputField.onkeydown = (e) => moveToNextLine(e, index);
+        // 创建输入框
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.className = 'inputField';
+        inputField.setAttribute('data-line', index);
+        inputField.oninput = () => checkTyping(line, inputField, index);
+        inputField.onkeydown = (e) => moveToNextLine(e, index); // 按下 Enter 键时自动跳到下一行
 
-                const resultField = document.createElement('div');
-                resultField.className = 'resultField';
-                resultField.setAttribute('id', `result-${index}`);
+        // 创建结果显示区域
+        const resultField = document.createElement('div');
+        resultField.className = 'resultField';
+        resultField.setAttribute('id', `result-${index}`);
 
-                practiceArea.appendChild(lineText);
-                practiceArea.appendChild(inputField);
-                practiceArea.appendChild(resultField);
-            });
-        }
+        // 将元素添加到练习区域
+        practiceArea.appendChild(lineText);
+        practiceArea.appendChild(inputField);
+        practiceArea.appendChild(resultField);
+    });
+}
+
 
         function checkTyping(expectedLine, inputField, lineIndex) {
-            const userInput = inputField.value;
+    const userInput = inputField.value;
 
-            if (!startTime && userInput.length > 0) {
-                startTimer();
-            }
+    // 开始计时
+    if (!startTime && userInput.length > 0) {
+        startTimer();
+    }
 
-            let result = '';
-            let correctCount = 0;
+    let result = '';
+    let correctCount = 0;
 
-            for (let i = 0; i < expectedLine.length; i++) {
-                if (userInput[i] === expectedLine[i]) {
-                    result += `<span class="correct">${userInput[i]}</span>`;
-                    correctCount++;
-                } else {
-                    result += `<span class="error">${userInput[i] || ''}</span>`;
-                }
-            }
-
-            completedCharacters += correctCount;
-
-            const resultField = document.getElementById(`result-${lineIndex}`);
-            resultField.innerHTML = result;
-
-            if (completedCharacters >= totalCharacters) {
-                stopTimer();
-            }
+    for (let i = 0; i < expectedLine.length; i++) {
+        if (userInput[i] === expectedLine[i]) {
+            result += `<span class="correct">${userInput[i]}</span>`;
+            correctCount++;
+        } else {
+            result += `<span class="error">${userInput[i] || ''}</span>`;
         }
+    }
+
+    // 更新正确字符数
+    completedCharacters += correctCount;
+
+    // 显示结果
+    const resultField = document.getElementById(`result-${lineIndex}`);
+    resultField.innerHTML = result;
+
+    // 如果所有字符都输入正确，停止计时
+    if (completedCharacters >= totalCharacters) {
+        stopTimer();
+    }
+}
+
 
         function moveToNextLine(event, currentIndex) {
-            if (event.key === "Enter") {
-                const inputFields = document.getElementsByClassName('inputField');
-                if (currentIndex < inputFields.length - 1) {
-                    inputFields[currentIndex + 1].focus();
-                }
-            }
+    if (event.key === "Enter") {
+        const inputFields = document.getElementsByClassName('inputField');
+        if (currentIndex < inputFields.length - 1) {
+            inputFields[currentIndex + 1].focus();
         }
+    }
+}
+
 
         function startTimer() {
             startTime = new Date();
